@@ -1,0 +1,12 @@
+{
+  "smtp_server": "smtp.gmail.com",
+  "smtp_port": 587,
+  "sender_email": "enkayinvestment123@gmail.com",
+  "sender_password": "gxjf msgj sdzm gxal",
+  "recipients": [
+    "keshav.asawa@flame.edu.in"
+  ],
+  "recipient_name": "Manager",
+  "risk_profile": "moderate",
+  "enabled": false
+}

@@ -1,0 +1,51 @@
+# Python cache/build
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Secrets
+.env
+.streamlit/secrets.toml
+
+# IDE/editor
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+
+# OS clutter
+.DS_Store
+Thumbs.db
+__MACOSX/
+
+# Raw/local Excel inputs (keep local, do not commit)
+*.xls
+*.xlsx
+
+# Explicit important raw input names
+Brokerage_Rates_Enkay.xlsx
+TieUp_AMCs_List.xlsx
+average-aum.xlsx
+Client Wise AUM.xlsx
+Client_Wise_AUM.xlsx
+Scheme Wise AUM.xls
+Scheme_wise_AUM.xls
+
+# Generated raw downloads / caches / artifacts
+Fund_Performance_*/
+data/api_cache/
+generated_cards/
+
+# Debug / backups
+debug_*
+*_backup.py
+patch.diff
+nul
+trace_*.py
