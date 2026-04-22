@@ -691,15 +691,41 @@ elif selected_page == "📋 Portfolio Exposure Review":
 
     aum_threshold = AUM_THRESHOLDS[aum_threshold_label]
 
-    with st.spinner("Loading AAUM data and analyzing..."):
-        aum_df = load_aum_data(uploaded_file=portfolio_upload)
-        analysis_result = flag_underperforming_schemes(
-            aum_df, active_df,
-            risk_profile=risk_profile,
-            aum_threshold=aum_threshold,
-            score_percentile=50,
-            include_brokerage_flag=include_brok,
-        )
+    default_aum_file = os.path.join(BASE_DIR, "Scheme_wise_AUM.xls")
+    has_uploaded_aum = portfolio_upload is not None
+    has_default_aum = os.path.exists(default_aum_file)
+    analysis_result = st.session_state.get("portfolio_review_result")
+
+    if refresh_btn:
+        if not has_uploaded_aum and not has_default_aum:
+            st.warning("No default AAUM file found. Please upload Scheme-wise AAUM (.xls/.xlsx) and click Analyze Portfolio.")
+            st.session_state.pop("portfolio_review_result", None)
+            analysis_result = None
+        else:
+            try:
+                with st.spinner("Loading AAUM data and analyzing..."):
+                    aum_df = load_aum_data(uploaded_file=portfolio_upload if has_uploaded_aum else None)
+                    analysis_result = flag_underperforming_schemes(
+                        aum_df, active_df,
+                        risk_profile=risk_profile,
+                        aum_threshold=aum_threshold,
+                        score_percentile=50,
+                        include_brokerage_flag=include_brok,
+                    )
+                st.session_state["portfolio_review_result"] = analysis_result
+            except ValueError as exc:
+                st.warning(str(exc))
+                st.session_state.pop("portfolio_review_result", None)
+                analysis_result = None
+            except Exception:
+                st.error("Unable to analyze AAUM right now. Please verify the uploaded file format and try again.")
+                st.session_state.pop("portfolio_review_result", None)
+                analysis_result = None
+    elif analysis_result is None and not has_uploaded_aum and not has_default_aum:
+        st.info("Upload Scheme-wise AAUM (.xls/.xlsx), then click Analyze Portfolio to view exposure insights.")
+
+    if analysis_result is None:
+        st.stop()
     
     summary = analysis_result["summary"]
     
@@ -1111,6 +1137,12 @@ elif selected_page == "🏦 AMC Concentration":
     
     st.markdown("### 📊 Current Holdings AMC Concentration")
     st.markdown("This section shows AMC distribution based on your actual AAUM holdings.")
+
+    current_aum_upload = st.file_uploader(
+        "📂 Upload Scheme-wise AAUM file for current holdings (.xls/.xlsx) — or leave empty to use default",
+        type=["xls", "xlsx"],
+        key="amc_current_upload",
+    )
     
     amc_col1, amc_col2 = st.columns([2, 1])
     with amc_col1:
@@ -1126,12 +1158,39 @@ elif selected_page == "🏦 AMC Concentration":
         refresh_current = st.button("🔄 Analyze Current Holdings", use_container_width=True)
     
     aum_thresh_val = AUM_THRESHOLDS[aum_thresh_label]
-    
-    with st.spinner("Analyzing current holdings..."):
-        current_amc_result = compute_current_amc_concentration(
-            aum_threshold=aum_thresh_val,
-            ranked_df=active_df,
-        )
+
+    default_aum_file = os.path.join(BASE_DIR, "Scheme_wise_AUM.xls")
+    has_uploaded_aum = current_aum_upload is not None
+    has_default_aum = os.path.exists(default_aum_file)
+    current_amc_result = st.session_state.get("amc_current_result")
+
+    if refresh_current:
+        if not has_uploaded_aum and not has_default_aum:
+            st.warning("No default AAUM file found. Please upload Scheme-wise AAUM (.xls/.xlsx) and click Analyze Current Holdings.")
+            st.session_state.pop("amc_current_result", None)
+            current_amc_result = None
+        else:
+            try:
+                with st.spinner("Analyzing current holdings..."):
+                    current_amc_result = compute_current_amc_concentration(
+                        aum_threshold=aum_thresh_val,
+                        ranked_df=active_df,
+                        uploaded_file=current_aum_upload if has_uploaded_aum else None,
+                    )
+                st.session_state["amc_current_result"] = current_amc_result
+            except ValueError as exc:
+                st.warning(str(exc))
+                st.session_state.pop("amc_current_result", None)
+                current_amc_result = None
+            except Exception:
+                st.error("Unable to analyze current holdings right now. Please verify the uploaded file format and try again.")
+                st.session_state.pop("amc_current_result", None)
+                current_amc_result = None
+    elif current_amc_result is None and not has_uploaded_aum and not has_default_aum:
+        st.info("Upload Scheme-wise AAUM (.xls/.xlsx), then click Analyze Current Holdings to view AMC concentration.")
+
+    if current_amc_result is None:
+        st.stop()
     
     cur_summary = current_amc_result["summary"]
     

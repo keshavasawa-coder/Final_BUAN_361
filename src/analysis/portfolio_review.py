@@ -67,6 +67,10 @@ def load_aum_data(uploaded_file=None):
             df = pd.read_excel(io.BytesIO(file_bytes), sheet_name=0)
     else:
         # Load from default file
+        if not os.path.exists(AUM_FILE):
+            raise ValueError(
+                "No default Scheme_wise_AUM.xls found. Please upload the Scheme-wise AAUM file (.xls/.xlsx)."
+            )
         df = pd.read_excel(AUM_FILE, sheet_name="AUM Report", header=1)
     
     # Standardize column names

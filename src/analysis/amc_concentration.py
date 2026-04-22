@@ -101,9 +101,34 @@ def compute_amc_concentration(
     }
 
 
-def load_aum_data():
-    """Load and clean the Scheme_wise_AUM.xls file."""
-    df = pd.read_excel(AUM_FILE, sheet_name="AUM Report", header=1)
+def load_aum_data(uploaded_file=None):
+    """Load and clean AUM data from uploaded file or default Scheme_wise_AUM.xls."""
+    import io
+
+    if uploaded_file is not None:
+        file_bytes = uploaded_file.read()
+        xl = pd.ExcelFile(io.BytesIO(file_bytes))
+        sheet_names_to_try = ["AUM Report", "AUM", "Sheet1", "Sheet0", xl.sheet_names[0]]
+        df = None
+
+        for sheet_name in sheet_names_to_try:
+            try:
+                temp_df = pd.read_excel(io.BytesIO(file_bytes), sheet_name=sheet_name, header=1)
+                if any("scheme" in str(c).lower() for c in temp_df.columns):
+                    df = temp_df
+                    break
+            except Exception:
+                continue
+
+        if df is None:
+            df = pd.read_excel(io.BytesIO(file_bytes), sheet_name=0)
+    else:
+        if not os.path.exists(AUM_FILE):
+            raise ValueError(
+                "No default Scheme_wise_AUM.xls found. Please upload the Scheme-wise AAUM file (.xls/.xlsx)."
+            )
+        df = pd.read_excel(AUM_FILE, sheet_name="AUM Report", header=1)
+
     df.columns = ["sr_no", "amc", "scheme", "nav", "equity", "debt", "hybrid", "physical_assets", "others", "total"]
     df = df.dropna(subset=["scheme"])
     df["scheme"] = df["scheme"].astype(str).str.strip()
@@ -124,6 +149,7 @@ def fuzzy_match_amc(aum_amc, ranked_amcs, threshold=70):
 def compute_current_amc_concentration(
     aum_threshold=2500000,
     ranked_df=None,
+    uploaded_file=None,
 ) -> dict:
     """
     Compute AMC concentration from current AUM holdings.
@@ -135,12 +161,30 @@ def compute_current_amc_concentration(
         - 'total_amcs': number of unique AMCs
         - 'schemes_matched': number of schemes matched to ranked funds
     """
-    aum_df = load_aum_data()
+    aum_df = load_aum_data(uploaded_file=uploaded_file)
     
     aum_df = aum_df[aum_df["total"] >= aum_threshold].copy()
+
+    if aum_df.empty:
+        empty_summary = pd.DataFrame(columns=["amc", "aum", "pct", "alert"])
+        return {
+            "summary": empty_summary,
+            "total_aum": 0.0,
+            "total_amcs": 0,
+            "schemes_matched": 0,
+        }
     
     aum_by_amc = aum_df.groupby("amc")["total"].sum().reset_index()
     total_aum = aum_by_amc["total"].sum()
+
+    if total_aum <= 0:
+        empty_summary = pd.DataFrame(columns=["amc", "aum", "pct", "alert"])
+        return {
+            "summary": empty_summary,
+            "total_aum": 0.0,
+            "total_amcs": 0,
+            "schemes_matched": len(aum_df),
+        }
     
     aum_by_amc["pct"] = (aum_by_amc["total"] / total_aum).round(4)
     aum_by_amc["alert"] = aum_by_amc["pct"] > CONCENTRATION_ALERT_THRESHOLD
