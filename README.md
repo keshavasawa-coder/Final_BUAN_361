@@ -78,6 +78,7 @@ streamlit run src/dashboard/app.py
 - Main file path: `src/dashboard/app.py`
 - Python version: 3.11
 - Secrets: add `OPENAI_API_KEY` in Streamlit Cloud app secrets.
+- Make sure `data/processed/master_scheme_table.csv` and `data/processed/ranked_funds.csv` are committed, because Streamlit Cloud does not run the local data pipeline scripts.
 
 ### Hugging Face Spaces
 1. Go to https://huggingface.co/spaces
