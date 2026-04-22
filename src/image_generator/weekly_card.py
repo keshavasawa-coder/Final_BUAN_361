@@ -77,7 +77,7 @@ def _font(size, bold=False):
                 except Exception:
                     continue
         if not _FONT_FALLBACK_WARNED:
-            print("[WARN] Using PIL default font. Install system fonts or add TTF files under src/image_generator/fonts/")
+            print("[WARN] Using PIL default font. Bundle TTF files under src/image_generator/fonts/ for consistent deployment.")
             _FONT_FALLBACK_WARNED = True
         _FONT_CACHE[key] = ImageFont.load_default()
     return _FONT_CACHE[key]
