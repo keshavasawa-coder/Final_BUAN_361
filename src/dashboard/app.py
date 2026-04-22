@@ -2393,7 +2393,7 @@ elif selected_page == "📊 Client Insights":
 # ═══════════════════════════════════════════════════════
 elif selected_page == "📧 Email Summary":
     from email_summary.sender import load_config, save_config, send_email
-    from email_summary.generator import generate_email_html
+    from email_summary.generator_ai import generate_email_html
 
     st.markdown('<div class="section-title">Email Summary — Daily Insights to Your Inbox</div>', unsafe_allow_html=True)
     st.markdown(

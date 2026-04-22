@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, "src", "analysis"))
 sys.path.insert(0, os.path.join(BASE_DIR, "src", "scoring"))
 
 from email_summary.sender import load_config, send_email
-from email_summary.generator import generate_email_html
+from email_summary.generator_ai import generate_email_html
 
 
 def main():

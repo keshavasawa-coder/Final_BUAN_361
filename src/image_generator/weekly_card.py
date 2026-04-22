@@ -10,6 +10,8 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 
+from src.ai_copy import generate_weekly_caption
+
 _SRC_DIR = os.path.join(os.path.dirname(__file__), "..")
 for _p in [_SRC_DIR, os.path.join(_SRC_DIR, "analysis"), os.path.join(_SRC_DIR, "scoring")]:
     if _p not in sys.path:
@@ -226,6 +228,16 @@ def generate_card(fund_row: pd.Series) -> Image.Image:
     if amc:
         _text_center(draw, y + 5, amc, _font(22), GRAY)
         y += 40
+
+    caption = generate_weekly_caption(fund_row.to_dict())
+    if caption:
+        caption_font = _font(20)
+        bbox = draw.textbbox((0, 0), caption, font=caption_font)
+        while caption and (bbox[2] - bbox[0]) > W - 160:
+            caption = " ".join(caption.split()[:-1])
+            bbox = draw.textbbox((0, 0), caption, font=caption_font)
+        _text_center(draw, y + 5, caption, caption_font, BLUE)
+        y += 34
 
     # Separator
     y += 15

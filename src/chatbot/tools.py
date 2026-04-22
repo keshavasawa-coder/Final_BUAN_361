@@ -1288,7 +1288,7 @@ def send_email_summary(risk_profile: str = "moderate", recipient_name: str = "")
         recipient_name: Name for the greeting (optional, uses config default if empty).
     """
     from email_summary.sender import load_config, send_email
-    from email_summary.generator import generate_email_html
+    from email_summary.generator_ai import generate_email_html
 
     config = load_config()
 
