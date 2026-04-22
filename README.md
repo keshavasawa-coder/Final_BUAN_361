@@ -27,8 +27,8 @@ A data-driven fund recommendation and SIP growth analytics system for mutual fun
 
 ## Authentication
 
-- **Username**: `admin`
-- **Password**: `EnkayInv123`
+- **Admin Username**: `admin`
+- **Admin Password**: `EnkayInv123`
 - **Guest Username**: `guest`
 - **Guest Password**: `Enkay123`
 
@@ -53,23 +53,11 @@ pip install -r requirements.txt
 streamlit run src/dashboard/app.py
 ```
 
-For chatbot-enabled features, set your API key first:
-
-```bash
-set OPENAI_API_KEY=your_api_key_here
-```
-
 ## Data Files
 
-### Committed Runtime Files
-- `data/processed/*.csv` - processed data used directly by the dashboard at runtime
-
-### Local Input Files (keep local, excluded via `.gitignore`)
-- `Brokerage_Rates_Enkay.xlsx` - Brokerage rates for mutual fund schemes
-- `TieUp_AMCs_List.xlsx` - List of AMCs with tie-up categories (A/B)
-- `Client Wise AUM.xlsx` / `Client_Wise_AUM.xlsx` - Client holdings input (if available)
-- `Scheme Wise AUM.xls` / `Scheme_wise_AUM.xls` - Scheme holdings input (if available)
-- `average-aum.xlsx` - baseline source used for regeneration workflows
+### Required Files (in project root)
+- `data/processed/*.csv` files (committed in repo) are required for app startup.
+- Raw input Excel files are optional for deployment if processed outputs are already present.
 
 ### Optional Files (for Portfolio Exposure Review)
 - `Scheme_wise_AUM.xls` - Current AUM holdings
@@ -89,7 +77,7 @@ set OPENAI_API_KEY=your_api_key_here
 **Configuration:**
 - Main file path: `src/dashboard/app.py`
 - Python version: 3.11
-- Add `OPENAI_API_KEY` in Streamlit Cloud app secrets
+- Secrets: add `OPENAI_API_KEY` in Streamlit Cloud app secrets.
 
 ### Hugging Face Spaces
 1. Go to https://huggingface.co/spaces

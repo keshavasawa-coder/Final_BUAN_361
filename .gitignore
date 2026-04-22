@@ -1,51 +1,50 @@
-# Python cache/build
+# Python bytecode/cache
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environments
+# Virtual environments and secrets
 .venv/
 venv/
 ENV/
 env/
-
-# Secrets
 .env
+.env.*
 .streamlit/secrets.toml
 
 # IDE/editor
 .vscode/
 .idea/
-.claude/
 *.swp
 *.swo
 
-# OS clutter
+# OS/local metadata
 .DS_Store
-Thumbs.db
 __MACOSX/
+.claude/
+.devcontainer/
 
-# Raw/local Excel inputs (keep local, do not commit)
+# Raw input spreadsheets (keep local)
 *.xls
 *.xlsx
-
-# Explicit important raw input names
 Brokerage_Rates_Enkay.xlsx
 TieUp_AMCs_List.xlsx
 average-aum.xlsx
-Client Wise AUM.xlsx
 Client_Wise_AUM.xlsx
-Scheme Wise AUM.xls
+Client_wise_AUM.xlsx
+Scheme_Wise_AUM.xls
 Scheme_wise_AUM.xls
 
-# Generated raw downloads / caches / artifacts
-Fund_Performance_*/
-data/api_cache/
+# Generated artifacts and caches
 generated_cards/
-
-# Debug / backups
+data/api_cache/
+Fund_Performance_*/
 debug_*
 *_backup.py
 patch.diff
 nul
 trace_*.py
+
+# Ignore CSV by default but keep deployment-critical processed outputs
+*.csv
+!data/processed/*.csv

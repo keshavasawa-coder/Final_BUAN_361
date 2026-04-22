@@ -10,7 +10,6 @@ Streamlit application with 7 tabs:
   7. 📦 Recommended Portfolios
 """
 import os, sys
-import base64
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -21,7 +20,6 @@ import streamlit as st
 DASH_DIR = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR  = os.path.dirname(DASH_DIR)
 BASE_DIR = os.path.dirname(SRC_DIR)
-LOGO_FILE = os.path.join(BASE_DIR, "EnkayInvestmentLogo.png")
 for p in [SRC_DIR, os.path.join(SRC_DIR, "scoring"), os.path.join(SRC_DIR, "analysis")]:
     if p not in sys.path:
         sys.path.insert(0, p)
@@ -67,23 +65,20 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+# ── Page config ──────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Enkay Investments – Fund Analytics",
+    page_icon="💸",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 # ── Authentication ───────────────────────────────────────────────────────────
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
     st.session_state["user_role"] = None
 
-
-def _logo_data_uri(path: str) -> str | None:
-    if not os.path.exists(path):
-        return None
-    ext = os.path.splitext(path)[1].lower().lstrip(".") or "png"
-    with open(path, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode("utf-8")
-    return f"data:image/{ext};base64,{encoded}"
-
 if not st.session_state["authenticated"]:
-    login_logo_uri = _logo_data_uri(LOGO_FILE)
     st.markdown("""
     <style>
       .login-container {
@@ -95,27 +90,15 @@ if not st.session_state["authenticated"]:
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         border: 1px solid #e2e8f0;
       }
-            .login-header { margin-bottom: 24px; text-align: center; }
-            .login-header h2 { font-family: 'Inter', sans-serif; color: #1e293b; margin: 0; text-align: center; }
-            .login-header p { color: #64748b; font-size: 0.9rem; margin-top: 6px; margin-bottom: 0; text-align: center; }
-            .login-logo {
-                display: block;
-                width: min(320px, 90vw);
-                height: auto;
-                margin: 0 auto 18px auto;
-            }
+      .login-header { text-align: center; margin-bottom: 24px; }
+      .login-header h2 { font-family: 'Inter', sans-serif; color: #1e293b; margin: 0; }
+      .login-header p { color: #64748b; font-size: 0.9rem; margin-top: 5px; }
       body { background-color: #f8fafc; }
     </style>
     """, unsafe_allow_html=True)
     
     st.markdown('<div class="login-container">', unsafe_allow_html=True)
-    if login_logo_uri:
-        st.markdown(
-            f'''<div class="login-header"><img class="login-logo" src="{login_logo_uri}" alt="Enkay Investment Logo"/><h2>Enkay Investments</h2><p>Please log in to access the dashboard</p></div>''',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown('<div class="login-header"><h2>Enkay Investments</h2><p>Please log in to access the dashboard</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="login-header"><h2>💸 Enkay Investments</h2><p>Please log in to access the dashboard</p></div>', unsafe_allow_html=True)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Login", type="primary", use_container_width=True):
@@ -271,10 +254,7 @@ else:
     PAGES = ALL_PAGES
 
 with st.sidebar:
-    if os.path.exists(LOGO_FILE):
-        st.image(LOGO_FILE, width=150)
-    else:
-        st.image("https://img.icons8.com/fluency/96/investment-portfolio.png", width=60)
+    st.image("https://img.icons8.com/fluency/96/investment-portfolio.png", width=60)
     st.markdown("## 📌 Navigation")
     
     selected_page = st.radio("Go to", PAGES, label_visibility="collapsed")
