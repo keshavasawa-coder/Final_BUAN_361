@@ -42,7 +42,14 @@ def load_aum_data(uploaded_file=None):
     
     if uploaded_file is not None:
         # Read uploaded file - auto-detect sheet name
-        file_bytes = uploaded_file.read()
+        if hasattr(uploaded_file, "getvalue"):
+            file_bytes = uploaded_file.getvalue()
+        else:
+            try:
+                uploaded_file.seek(0)
+            except Exception:
+                pass
+            file_bytes = uploaded_file.read()
         
         # Try to find the AUM sheet
         xl = pd.ExcelFile(io.BytesIO(file_bytes))

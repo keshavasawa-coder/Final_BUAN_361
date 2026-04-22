@@ -30,7 +30,6 @@ BASELINE_AAUM_EXCEL = os.path.join(BASE_DIR, "average-aum.xlsx")
 
 from analysis.peer_comparison     import get_peer_comparison
 from analysis.fund_shift          import suggest_alternatives
-from analysis.amc_concentration   import compute_current_amc_concentration
 from analysis.portfolio_review    import (
     load_aum_data,
     flag_underperforming_schemes,
@@ -39,6 +38,13 @@ from analysis.portfolio_review    import (
 )
 from analysis.portfolio_builder   import build_portfolio, get_portfolio_stats, PORTFOLIO_BASKETS, BASKET_NAMES
 import importlib as _importlib
+_amc_mod = _importlib.import_module("analysis.amc_concentration")
+compute_current_amc_concentration = _amc_mod.compute_current_amc_concentration
+compute_current_amc_concentration_from_df = getattr(
+    _amc_mod,
+    "compute_current_amc_concentration_from_df",
+    None,
+)
 _load_aum_mod = _importlib.import_module("data.03_load_aum")
 parse_aum_excel = _load_aum_mod.parse_aum_excel  # reuse existing AUM parser
 from analysis.sip_insights import (
@@ -712,20 +718,33 @@ elif selected_page == "📋 Portfolio Exposure Review":
                         score_percentile=50,
                         include_brokerage_flag=include_brok,
                     )
+                st.session_state["portfolio_aum_df"] = aum_df.copy()
+                st.session_state["portfolio_aum_source"] = "uploaded" if has_uploaded_aum else "default"
+                st.session_state["portfolio_aum_rows"] = len(aum_df)
                 st.session_state["portfolio_review_result"] = analysis_result
             except ValueError as exc:
                 st.warning(str(exc))
                 st.session_state.pop("portfolio_review_result", None)
+                st.session_state.pop("portfolio_aum_df", None)
+                st.session_state.pop("portfolio_aum_source", None)
+                st.session_state.pop("portfolio_aum_rows", None)
                 analysis_result = None
             except Exception:
                 st.error("Unable to analyze AAUM right now. Please verify the uploaded file format and try again.")
                 st.session_state.pop("portfolio_review_result", None)
+                st.session_state.pop("portfolio_aum_df", None)
+                st.session_state.pop("portfolio_aum_source", None)
+                st.session_state.pop("portfolio_aum_rows", None)
                 analysis_result = None
     elif analysis_result is None and not has_uploaded_aum and not has_default_aum:
         st.info("Upload Scheme-wise AAUM (.xls/.xlsx), then click Analyze Portfolio to view exposure insights.")
 
     if analysis_result is None:
         st.stop()
+
+    source_label = st.session_state.get("portfolio_aum_source", "default")
+    raw_rows = st.session_state.get("portfolio_aum_rows", 0)
+    st.caption(f"AAUM source: {source_label} | Loaded rows: {raw_rows}")
     
     summary = analysis_result["summary"]
     
@@ -1162,35 +1181,79 @@ elif selected_page == "🏦 AMC Concentration":
     default_aum_file = os.path.join(BASE_DIR, "Scheme_wise_AUM.xls")
     has_uploaded_aum = current_aum_upload is not None
     has_default_aum = os.path.exists(default_aum_file)
+    session_aum_df = st.session_state.get("portfolio_aum_df")
+    has_session_aum = session_aum_df is not None and not session_aum_df.empty
     current_amc_result = st.session_state.get("amc_current_result")
 
     if refresh_current:
-        if not has_uploaded_aum and not has_default_aum:
+        if not has_session_aum and not has_uploaded_aum and not has_default_aum:
             st.warning("No default AAUM file found. Please upload Scheme-wise AAUM (.xls/.xlsx) and click Analyze Current Holdings.")
             st.session_state.pop("amc_current_result", None)
+            st.session_state.pop("amc_current_source", None)
             current_amc_result = None
         else:
             try:
                 with st.spinner("Analyzing current holdings..."):
-                    current_amc_result = compute_current_amc_concentration(
-                        aum_threshold=aum_thresh_val,
-                        ranked_df=active_df,
-                        uploaded_file=current_aum_upload if has_uploaded_aum else None,
-                    )
+                    if has_session_aum and compute_current_amc_concentration_from_df is not None:
+                        current_amc_result = compute_current_amc_concentration_from_df(
+                            session_aum_df,
+                            aum_threshold=aum_thresh_val,
+                            ranked_df=active_df,
+                        )
+                        st.session_state["amc_current_source"] = "portfolio-session"
+                    elif has_session_aum:
+                        filtered = session_aum_df[session_aum_df["total"] >= aum_thresh_val].copy()
+                        if filtered.empty:
+                            summary_df = pd.DataFrame(columns=["amc", "aum", "pct", "alert"])
+                            current_amc_result = {
+                                "summary": summary_df,
+                                "total_aum": 0.0,
+                                "total_amcs": 0,
+                                "schemes_matched": 0,
+                            }
+                        else:
+                            summary_df = filtered.groupby("amc", dropna=False)["total"].sum().reset_index()
+                            total_aum = float(summary_df["total"].sum())
+                            summary_df["pct"] = (summary_df["total"] / total_aum).fillna(0).round(4) if total_aum > 0 else 0
+                            summary_df["alert"] = summary_df["pct"] > 0.30
+                            summary_df = summary_df.sort_values("total", ascending=False).reset_index(drop=True)
+                            summary_df.columns = ["amc", "aum", "pct", "alert"]
+                            current_amc_result = {
+                                "summary": summary_df,
+                                "total_aum": total_aum,
+                                "total_amcs": len(summary_df),
+                                "schemes_matched": len(filtered),
+                            }
+                        st.session_state["amc_current_source"] = "portfolio-session-fallback"
+                    else:
+                        current_amc_result = compute_current_amc_concentration(
+                            aum_threshold=aum_thresh_val,
+                            ranked_df=active_df,
+                            uploaded_file=current_aum_upload if has_uploaded_aum else None,
+                        )
+                        st.session_state["amc_current_source"] = "uploaded" if has_uploaded_aum else "default"
                 st.session_state["amc_current_result"] = current_amc_result
             except ValueError as exc:
                 st.warning(str(exc))
                 st.session_state.pop("amc_current_result", None)
+                st.session_state.pop("amc_current_source", None)
                 current_amc_result = None
             except Exception:
                 st.error("Unable to analyze current holdings right now. Please verify the uploaded file format and try again.")
                 st.session_state.pop("amc_current_result", None)
+                st.session_state.pop("amc_current_source", None)
                 current_amc_result = None
-    elif current_amc_result is None and not has_uploaded_aum and not has_default_aum:
+    elif current_amc_result is None and not has_session_aum and not has_uploaded_aum and not has_default_aum:
         st.info("Upload Scheme-wise AAUM (.xls/.xlsx), then click Analyze Current Holdings to view AMC concentration.")
 
     if current_amc_result is None:
         st.stop()
+
+    amc_source = st.session_state.get("amc_current_source", "default")
+    if amc_source == "portfolio-session":
+        st.caption("Using AAUM uploaded in Portfolio Exposure Review (session data).")
+    else:
+        st.caption(f"Using AAUM source: {amc_source}")
     
     cur_summary = current_amc_result["summary"]
     
@@ -2513,9 +2576,13 @@ elif selected_page == "📧 Email Summary":
     # ── Data Status ──
     st.markdown("##### Data Sources")
     ds1, ds2 = st.columns(2)
+    session_aum_df = st.session_state.get("portfolio_aum_df")
+    session_portfolio_avail = session_aum_df is not None and not session_aum_df.empty
     with ds1:
         portfolio_avail = os.path.exists(os.path.join(BASE_DIR, "Scheme_wise_AUM.xls"))
-        if portfolio_avail:
+        if session_portfolio_avail:
+            st.success(f"Portfolio: using uploaded AAUM from session ({len(session_aum_df)} rows)")
+        elif portfolio_avail:
             st.success("Portfolio: Scheme_wise_AUM.xls found")
         else:
             st.warning("Portfolio: not found — upload in Portfolio Exposure Review page")
@@ -2537,7 +2604,9 @@ elif selected_page == "📧 Email Summary":
 
     # Gather data for email
     email_portfolio = None
-    if os.path.exists(os.path.join(BASE_DIR, "Scheme_wise_AUM.xls")):
+    if session_portfolio_avail:
+        email_portfolio = session_aum_df.copy()
+    elif os.path.exists(os.path.join(BASE_DIR, "Scheme_wise_AUM.xls")):
         from analysis.portfolio_review import load_aum_data as _email_load_aum
         email_portfolio = _email_load_aum()
 

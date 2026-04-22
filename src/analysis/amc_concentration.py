@@ -106,7 +106,14 @@ def load_aum_data(uploaded_file=None):
     import io
 
     if uploaded_file is not None:
-        file_bytes = uploaded_file.read()
+        if hasattr(uploaded_file, "getvalue"):
+            file_bytes = uploaded_file.getvalue()
+        else:
+            try:
+                uploaded_file.seek(0)
+            except Exception:
+                pass
+            file_bytes = uploaded_file.read()
         xl = pd.ExcelFile(io.BytesIO(file_bytes))
         sheet_names_to_try = ["AUM Report", "AUM", "Sheet1", "Sheet0", xl.sheet_names[0]]
         df = None
@@ -162,6 +169,27 @@ def compute_current_amc_concentration(
         - 'schemes_matched': number of schemes matched to ranked funds
     """
     aum_df = load_aum_data(uploaded_file=uploaded_file)
+    return compute_current_amc_concentration_from_df(
+        aum_df,
+        aum_threshold=aum_threshold,
+        ranked_df=ranked_df,
+    )
+
+
+def compute_current_amc_concentration_from_df(
+    aum_df: pd.DataFrame,
+    aum_threshold=2500000,
+    ranked_df=None,
+) -> dict:
+    """Compute AMC concentration from an in-memory AUM DataFrame."""
+    if aum_df is None or aum_df.empty:
+        empty_summary = pd.DataFrame(columns=["amc", "aum", "pct", "alert"])
+        return {
+            "summary": empty_summary,
+            "total_aum": 0.0,
+            "total_amcs": 0,
+            "schemes_matched": 0,
+        }
     
     aum_df = aum_df[aum_df["total"] >= aum_threshold].copy()
 
